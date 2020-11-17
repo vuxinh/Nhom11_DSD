@@ -93,7 +93,7 @@ export const sidebarMenu = [
       },
       {
         key: 'SurveillanceDomainManage',
-        heading: 'Quản lý miền',
+        heading: 'Quản lý miền giám sát',
         icon: 'fas fa-crop-alt',
         route: '/surveillance-domain-manage',
       },
