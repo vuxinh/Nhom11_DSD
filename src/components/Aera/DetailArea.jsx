@@ -67,15 +67,15 @@ class DetailArea extends React.PureComponent {
             listDomain: [
                 {
                     name: 'Domain 1',
-                    area: KV1,
-                    index: MIEN1,
+                    area: 'KV1',
+                    index: 'MIEN1',
                     latitude: 60,
                     longtitude: 30
                 },
                 {
                     name: 'Domain 2',
-                    area: KV2,
-                    index: MIEN2,
+                    area: 'KV2',
+                    index: 'MIEN2',
                     latitude: 100,
                     longtitude: 40
                 },

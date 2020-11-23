@@ -89,7 +89,7 @@ export const sidebarMenu = [
         key: 'SurveillanceDomainArea',
         heading: 'Quản lý khu vực',
         icon: 'fas fa-crop-alt',
-        route: '/surveillance-domain-area',
+        route: '/area-manage',
       },
       {
         key: 'SurveillanceDomainManage',
