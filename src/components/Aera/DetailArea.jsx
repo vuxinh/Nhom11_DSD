@@ -5,7 +5,6 @@ import {Input, Select, Tabs, Button, Checkbox, Table, Modal} from 'antd';
 import {DeleteOutlined, FolderAddOutlined} from "@ant-design/icons";
 
 const {TabPane} = Tabs
-const {Option} = Select;
 
 function callback(key) {
     console.log(key);

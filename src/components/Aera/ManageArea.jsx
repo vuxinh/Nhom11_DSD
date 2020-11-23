@@ -4,8 +4,6 @@ import {Table, Checkbox, Col, Row, Input, Select, Button, Modal} from 'antd';
 import {SearchOutlined, DeleteOutlined, FolderAddOutlined} from '@ant-design/icons';
 import {withRouter} from 'react-router'
 
-const {Option} = Select;
-
 class ManageArea extends React.Component {
     constructor(props) {
         super(props);
