@@ -216,12 +216,13 @@ class ManageEdit extends React.PureComponent {
                             </table>
                         </div>
                         <br/>
-                        <div style={{height: "50vh", width: "50vh"}}>
+                        <div style={{width: "70vh"}}>
                             <MyMapComponent
                                 isMarkerShown={this.state.isMarkerShown}
                                 onMarkerClick={this.handleMarkerClick}
                             />
                         </div>
+                        <br/>
                         <div className="action center">
                             <div className="save">
                                 {

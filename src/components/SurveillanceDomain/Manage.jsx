@@ -265,7 +265,7 @@ class Manage extends React.Component {
                                         </td>
                                     </tr>
                                 </table>
-                                <div style={{height: "50vh"}}>
+                                <div >
                                     <MyMapComponent
                                         isMarkerShown={this.state.isMarkerShown}
                                         onMarkerClick={this.handleMarkerClick}
