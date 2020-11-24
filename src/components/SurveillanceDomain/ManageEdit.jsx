@@ -1,8 +1,10 @@
 import React from 'react';
+import {compose, withProps} from "recompose"
 import {withRouter} from 'react-router-dom';
 import 'antd/dist/antd.css';
 import {Input, Select, Tabs, Button, Checkbox, Table, Modal} from 'antd';
 import {DeleteOutlined, FolderAddOutlined} from "@ant-design/icons";
+import {GoogleMap, withGoogleMap, withScriptjs} from "react-google-maps";
 
 const {TabPane} = Tabs
 const {Option} = Select;
@@ -10,6 +12,24 @@ const {Option} = Select;
 function callback(key) {
     console.log(key);
 }
+
+const MyMapComponent = compose(
+    withProps({
+        googleMapURL: "https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=AIzaSyA15qz81pHiNfVEV3eeniSNhAu64SsJKgU",
+        loadingElement: <div style={{height: `100%`}}/>,
+        containerElement: <div style={{height: `400px`}}/>,
+        mapElement: <div style={{height: `100%`}}/>,
+    }),
+    withScriptjs,
+    withGoogleMap
+)((props) =>
+    <GoogleMap
+        defaultZoom={8}
+        defaultCenter={{lat: 21.0245, lng: 105.84117}}
+        onClick={props.onMarkerClick}
+    >
+    </GoogleMap>
+)
 
 class ManageEdit extends React.PureComponent {
     constructor(props) {
@@ -58,19 +78,32 @@ class ManageEdit extends React.PureComponent {
                     key: 'date',
                     dataIndex: 'date',
                 },
+                {
+                    title: 'Tốc độ tối đa',
+                    key: 'maxSpeed',
+                    dataIndex: 'maxSpeed',
+                },                {
+                    title: 'Thời gian bay tối đa',
+                    key: 'maxFlightTime',
+                    dataIndex: 'maxFlightTime',
+                },
             ],
             listDrone: [
                 {
                     name: 'Drone 1',
                     maxH: 50,
                     minH: 30,
-                    date: '20/05/2020'
+                    date: '20/05/2020',
+                    maxSpeed: 50,
+                    maxFlightTime: '20/05/2020',
                 },
                 {
                     name: 'Drone 2',
                     maxH: 40,
                     minH: 20,
-                    date: '20/05/2020'
+                    date: '20/05/2020',
+                    maxSpeed: 50,
+                    maxFlightTime: '20/05/2020',
                 },
             ],
             openModalAdd: false,
@@ -106,6 +139,17 @@ class ManageEdit extends React.PureComponent {
     
     setStatusModalDelete(openModalDelete) {
         this.setState({openModalDelete});
+    }
+    
+    handleMarkerClick = (e) => {
+        let lat = e.latLng.lat();
+        let lng = e.latLng.lng();
+        this.setState(prevState => {
+            let newdomain = Object.assign({}, prevState.newdomain);
+            newdomain.latitude = lat;
+            newdomain.longitude = lng;
+            return { newdomain };
+        })
     }
     
     render() {
@@ -172,6 +216,12 @@ class ManageEdit extends React.PureComponent {
                             </table>
                         </div>
                         <br/>
+                        <div style={{height: "50vh", width: "50vh"}}>
+                            <MyMapComponent
+                                isMarkerShown={this.state.isMarkerShown}
+                                onMarkerClick={this.handleMarkerClick}
+                            />
+                        </div>
                         <div className="action center">
                             <div className="save">
                                 {
@@ -200,6 +250,7 @@ class ManageEdit extends React.PureComponent {
                                 onOk={() => this.setStatusModalAdd(false)}
                                 onCancel={() => this.setStatusModalAdd(false)}
                                 okText="Lưu"
+                                width={650}
                                 cancelText="Hủy"
                                 centered
                             >
