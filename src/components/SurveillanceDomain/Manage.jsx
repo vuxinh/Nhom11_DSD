@@ -1,15 +1,41 @@
 import React from 'react';
+import {compose, withProps} from "recompose"
 import 'antd/dist/antd.css';
 import {Table, Checkbox, Col, Row, Input, Select, Button, Modal} from 'antd';
 import {SearchOutlined, DeleteOutlined, FolderAddOutlined} from '@ant-design/icons';
-import {withRouter} from 'react-router'
+import {withRouter} from 'react-router';
+import {
+    withGoogleMap,
+    withScriptjs,
+    GoogleMap,
+} from "react-google-maps";
 
 const {Option} = Select;
+
+
+const MyMapComponent = compose(
+    withProps({
+        googleMapURL: "https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=AIzaSyA15qz81pHiNfVEV3eeniSNhAu64SsJKgU",
+        loadingElement: <div style={{height: `100%`}}/>,
+        containerElement: <div style={{height: `400px`}}/>,
+        mapElement: <div style={{height: `100%`}}/>,
+    }),
+    withScriptjs,
+    withGoogleMap
+)((props) =>
+    <GoogleMap
+        defaultZoom={8}
+        defaultCenter={{lat: 21.0245, lng: 105.84117}}
+        onClick={props.onMarkerClick}
+    >
+    </GoogleMap>
+)
 
 class Manage extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            isMarkerShown: false,
             arrayDelete: [],
             listDomain: [
                 {
@@ -59,9 +85,43 @@ class Manage extends React.Component {
                     dataIndex: 'total',
                 },
             ],
+            create: {
+                lat: '',
+                lng: '',
+            },
         };
         this.onChange = this.onChange.bind(this);
         this.editDomain = this.editDomain.bind(this);
+        this._handleChange = this._handleChange.bind(this);
+    }
+    
+    delayedShowMarker = () => {
+        setTimeout(() => {
+            this.setState({isMarkerShown: true})
+        }, 3000)
+    }
+    
+    handleMarkerClick = (e) => {
+        let lat = e.latLng.lat();
+        let lng = e.latLng.lng();
+        this.setState({isMarkerShown: false});
+        this.setState(prevState => {
+            let create = Object.assign({}, prevState.create);
+            create.lat = lat;
+            create.lng = lng;
+            return { create };
+        })
+        this.delayedShowMarker();
+    }
+    
+    _handleChange(e) {
+        let key = e.target.name;
+        let value = e.target.value;
+        this.setState(prevState => {
+            let create = Object.assign({}, prevState.create);
+            create[key] = value;
+            return { create };
+        })
     }
     
     setStatusModalAdd(openModalAdd) {
@@ -70,6 +130,10 @@ class Manage extends React.Component {
     
     setStatusModalDelete(openModalDelete) {
         this.setState({openModalDelete});
+    }
+    
+    componentDidMount() {
+        this.delayedShowMarker()
     }
     
     onChange(e) {
@@ -106,8 +170,8 @@ class Manage extends React.Component {
             <div className="main">
                 <div className="filter">
                     <Row>
-                        <Col span={6}>
-                            <Input style={{width: 250}} placeholder="Search" prefix={<SearchOutlined/>}/>
+                        <Col span={4}>
+                            <Input style={{width: 150}} placeholder="Search" prefix={<SearchOutlined/>}/>
                         </Col>
                         <Col span={4}>
                             <Select placeholder="Độ ưu tiên" style={{width: 150}}>
@@ -167,11 +231,23 @@ class Manage extends React.Component {
                                     <tr>
                                         <th style={{width: '50%'}}>Kinh độ</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name="lng" value={this.state.create.lng} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Vĩ độ</th>
+                                        <td>
+                                            <Input name="lat" value={this.state.create.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%'}}>Bán kính</th>
+                                        <td>
+                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%'}}>Độ ưu tiên</th>
                                         <td>
                                             <Input style={{width: 200}} placeholder="Nhập"/>
                                         </td>
@@ -189,6 +265,12 @@ class Manage extends React.Component {
                                         </td>
                                     </tr>
                                 </table>
+                                <div >
+                                    <MyMapComponent
+                                        isMarkerShown={this.state.isMarkerShown}
+                                        onMarkerClick={this.handleMarkerClick}
+                                    />
+                                </div>
                             </Modal>
                             <Modal
                                 title="Bạn có thật sự muốn xóa không ?"
