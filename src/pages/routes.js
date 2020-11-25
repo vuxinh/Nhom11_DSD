@@ -1,5 +1,7 @@
 import React from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
+import DetailArea from '../components/Aera/DetailArea';
+import ManageArea from '../components/Aera/ManageArea';
 import Manage from '../components/SurveillanceDomain/Manage';
 import ManageEdit from '../components/SurveillanceDomain/ManageEdit';
 import Dashboard from './Dashboard';
@@ -77,6 +79,14 @@ export const routes = [
   {
     path: '/surveillance-domain-manage',
     component: () => <Manage />,
+  },
+  {
+    path: '/area-manage',
+    component: () => <ManageArea />,
+  },
+  {
+    path: '/area-manage/detail',
+    component: () => <DetailArea />,
   },
   {
     path: '/handle-problem',
