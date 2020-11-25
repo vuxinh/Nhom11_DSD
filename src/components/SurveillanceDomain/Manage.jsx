@@ -170,17 +170,17 @@ class Manage extends React.Component {
             <div className="main">
                 <div className="filter">
                     <Row>
-                        <Col span={6}>
-                            <Input style={{width: 100}} placeholder="Search" prefix={<SearchOutlined/>}/>
+                        <Col span={4}>
+                            <Input style={{width: 150}} placeholder="Search" prefix={<SearchOutlined/>}/>
                         </Col>
-                        <Col span={6}>
+                        <Col span={4}>
                             <Select placeholder="Độ ưu tiên" style={{width: 150}}>
                                 <Option value="1">Độ ưu tiên 1</Option>
                                 <Option value="2">Độ ưu tiên 2</Option>
                                 <Option value="3">Độ ưu tiên 3</Option>
                             </Select>
                         </Col>
-                        <Col span={6}>
+                        <Col span={4}>
                             <Select placeholder="Khu vực" style={{width: 150}}>
                                 <Option value="1">Khu vực 1</Option>
                                 <Option value="2">Khu vực 2</Option>
