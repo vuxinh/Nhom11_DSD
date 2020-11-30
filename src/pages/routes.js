@@ -81,11 +81,11 @@ export const routes = [
     component: () => <Manage />,
   },
   {
-    path: '/area-manage',
+    path: '/surveillance-area',
     component: () => <ManageArea />,
   },
   {
-    path: '/area-manage/detail',
+    path: '/surveillance-area/detail',
     component: () => <DetailArea />,
   },
   {
