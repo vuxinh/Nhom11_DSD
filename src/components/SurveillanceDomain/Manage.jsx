@@ -4,14 +4,15 @@ import 'antd/dist/antd.css';
 import {Table, Checkbox, Col, Row, Input, Select, Button, Modal} from 'antd';
 import {SearchOutlined, DeleteOutlined, FolderAddOutlined} from '@ant-design/icons';
 import {withRouter} from 'react-router';
+import axios from 'axios';
 import {
     withGoogleMap,
     withScriptjs,
     GoogleMap,
+    Polygon
 } from "react-google-maps";
-
+const { TextArea } = Input;
 const {Option} = Select;
-
 
 const MyMapComponent = compose(
     withProps({
@@ -28,6 +29,15 @@ const MyMapComponent = compose(
         defaultCenter={{lat: 21.0245, lng: 105.84117}}
         onClick={props.onMarkerClick}
     >
+        <Polygon
+            path={props.triangleCoords}
+            key={1}
+            editable={true}
+            options={{
+                strokeColor: "#0000FF",
+                strokeWeight: 1,
+            }}
+        />
     </GoogleMap>
 )
 
@@ -35,59 +45,54 @@ class Manage extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            triangleCoords: [],
             isMarkerShown: false,
             arrayDelete: [],
-            listDomain: [
-                {
-                    key: 'MGS1',
-                    name: 'Miền giám sát 1',
-                    area: 'Khu vực 1',
-                    total: 5
-                },
-                {
-                    key: 'MGS2',
-                    name: 'Miền giám sát 2',
-                    area: 'Khu vực 2',
-                    total: 2
-                },
-            ],
+            listDomain: [],
             openModalAdd: false,
             openModalDelete: false,
             columns: [
                 {
-                    title: '',
-                    key: 'key',
-                    render: (val) => (
-                        <Checkbox data-key={val.key} onChange={this.onChange}/>
-                    ),
-                },
-                {
                     title: 'Mã miền',
-                    dataIndex: 'key',
-                    key: 'key',
-                    render: text => <a onClick={() => {
-                        this.editDomain(text)
-                    }}>{text}</a>
-                },
-                {
-                    title: 'Tên miền',
-                    dataIndex: 'name',
-                    key: 'name',
+                    render: val => <a onClick={() => {
+                        this.editDomain(val._id)
+                    }}>{val.code}</a>
                 },
                 {
                     title: 'Khu vực',
-                    dataIndex: 'area',
-                    key: 'area',
+                    render: val => <p>{this.getNameArea(val.area)}</p>
                 },
                 {
                     title: 'Số lượng drone',
-                    key: 'total',
-                    dataIndex: 'total',
+                    render: val => <p>{val.drone.length}</p>
                 },
+                {
+                    title: '',
+                    render: val => (
+                        <Button type="primary" danger icon={<DeleteOutlined/>} style={{marginRight: 10}}
+                                onClick={() => this.deleteZone(val._id)}>
+                            Xóa
+                        </Button>
+                    )
+                }
             ],
+            listArea: [],
             create: {
-                lat: '',
-                lng: '',
+                _id: '',
+                data: {
+                    "startPoint": {
+                        "longitude": '',
+                        "latitude": ''
+                    },
+                    "endPoint": {
+                        "longitude": '',
+                        "latitude": ''
+                    },
+                    "priority": '',
+                    "desciption": "",
+                    "code": "",
+                    "level": 1
+                }
             },
         };
         this.onChange = this.onChange.bind(this);
@@ -104,13 +109,42 @@ class Manage extends React.Component {
     handleMarkerClick = (e) => {
         let lat = e.latLng.lat();
         let lng = e.latLng.lng();
+        let latStartPoint = this.state.create.data.startPoint.latitude;
+        let latEndPoint = this.state.create.data.endPoint.latitude;
+        if(!latStartPoint) {
+            this.setState(prevState => {
+                let create = Object.assign({}, prevState.create);
+                create.data.startPoint.latitude = lat;
+                create.data.startPoint.longitude = lng;
+                return {create};
+            });
+        } else if (!latEndPoint) {
+            this.setState(prevState => {
+                let create = Object.assign({}, prevState.create);
+                create.data.endPoint.latitude = lat;
+                create.data.endPoint.longitude = lng;
+                return {create};
+            });
+        } else {
+            this.setState(prevState => {
+                let create = Object.assign({}, prevState.create);
+                create.data.startPoint.latitude = lat;
+                create.data.startPoint.longitude = lng;
+                create.data.endPoint.latitude = '';
+                create.data.endPoint.longitude = '';
+                return {create};
+            });
+        }
+        if(this.state.create.data.startPoint.latitude && this.state.create.data.endPoint.latitude) {
+            let triangleCoords = [
+                { lat: this.state.create.data.startPoint.latitude, lng: this.state.create.data.startPoint.longitude },
+                { lat: this.state.create.data.startPoint.latitude, lng: this.state.create.data.endPoint.longitude },
+                { lat: this.state.create.data.endPoint.latitude, lng: this.state.create.data.endPoint.longitude },
+                { lat: this.state.create.data.endPoint.latitude, lng: this.state.create.data.startPoint.longitude },
+            ];
+            this.setState({triangleCoords});
+        }
         this.setState({isMarkerShown: false});
-        this.setState(prevState => {
-            let create = Object.assign({}, prevState.create);
-            create.lat = lat;
-            create.lng = lng;
-            return { create };
-        })
         this.delayedShowMarker();
     }
     
@@ -119,7 +153,7 @@ class Manage extends React.Component {
         let value = e.target.value;
         this.setState(prevState => {
             let create = Object.assign({}, prevState.create);
-            create[key] = value;
+            create.data[key] = value;
             return { create };
         })
     }
@@ -128,13 +162,70 @@ class Manage extends React.Component {
         this.setState({openModalAdd});
     }
     
+    createDomain() {
+        this.setStatusModalAdd(false);
+        let dataCreate = this.state.create;
+        axios.post(`https://monitoredzoneserver.herokuapp.com/monitoredzone/area`, dataCreate , {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(res => {
+                if(res.data.success) {
+                    this.getAllZone();
+                }
+            })
+            .catch(error => console.log(error));
+    }
+    
     setStatusModalDelete(openModalDelete) {
         this.setState({openModalDelete});
     }
     
-    componentDidMount() {
-        this.delayedShowMarker()
+    getAllZone() {
+        axios.get(`https://monitoredzoneserver.herokuapp.com/monitoredzone?pageSize=1000`)
+            .then(res => {
+                const listDomain = res.data.content.zone;
+                this.setState({listDomain});
+            })
+            .catch(error => console.log(error));
+        
     }
+    
+    deleteZone(id) {
+        axios.delete(`https://monitoredzoneserver.herokuapp.com/monitoredzone/${id}`)
+            .then(res => {
+                if(res.data.success) {
+                    this.getAllZone();
+                }
+            })
+            .catch(error => console.log(error));
+    }
+    
+    getArea() {
+        axios.get(`https://monitoredzoneserver.herokuapp.com/area?pageSize=1000`)
+            .then(res => {
+                const listArea = res.data.content.monitoredArea;
+                this.setState({listArea});
+            })
+            .catch(error => console.log(error));
+    }
+    
+    getNameArea(id) {
+        let area = this.state.listArea.find(area => area._id === id);
+        if(area) {
+            return area.name;
+        } else {
+            return id;
+        }
+    }
+    
+    componentDidMount() {
+        this.delayedShowMarker();
+        this.getArea();
+        this.getAllZone();
+    }
+    
     
     onChange(e) {
         let val = e.target['data-key'];
@@ -155,14 +246,25 @@ class Manage extends React.Component {
         }
     }
     
-    editDomain(val) {
-        let domain = this.state.listDomain.find(domain => domain.key === val);
+    editDomain(id) {
+        let domain = this.state.listDomain.find(domain => domain._id === id);
+        domain.nameArea = this.getNameArea(domain.area);
+        domain.desciption = domain.desciption ? domain.desciption : '';
         this.props.history.push({
             pathname: '/surveillance-domain-manage/edit',
             state: {
                 domain: domain
             }
         });
+    }
+    
+    toggleActive = name => value => {
+        console.log("_id: ",value) // event is some data
+        this.setState(prevState => {
+            let create = Object.assign({}, prevState.create);
+            create._id = value;
+            return {create};
+        })
     }
     
     render() {
@@ -188,10 +290,6 @@ class Manage extends React.Component {
                             </Select>
                         </Col>
                         <Col span={6}>
-                            <Button type="primary" danger icon={<DeleteOutlined/>} style={{marginRight: 10}}
-                                    onClick={() => this.setStatusModalDelete(true)}>
-                                Xóa
-                            </Button>
                             <Button type="primary" icon={<FolderAddOutlined/>}
                                     onClick={() => this.setStatusModalAdd(true)}>
                                 Thêm mới
@@ -199,7 +297,7 @@ class Manage extends React.Component {
                             <Modal
                                 title="Thêm mới miền giám sát"
                                 visible={this.state.openModalAdd}
-                                onOk={() => this.setStatusModalAdd(false)}
+                                onOk={() => this.createDomain()}
                                 onCancel={() => this.setStatusModalAdd(false)}
                                 okText="Lưu"
                                 cancelText="Hủy"
@@ -209,76 +307,39 @@ class Manage extends React.Component {
                                     <tr>
                                         <th style={{width: '50%'}}>Khu vực giám sát</th>
                                         <td>
-                                            <Select placeholder="Khu vực" style={{width: 200}}>
-                                                <Option value="1">Khu vực 1</Option>
-                                                <Option value="2">Khu vực 2</Option>
-                                                <Option value="3">Khu vực 3</Option>
+                                            <Select name="_id" placeholder="Khu vực" style={{width: 200}} onChange={this.toggleActive("Active!")}>
+                                                {this.state.listArea.map(area => {
+                                                    return <Option value={area._id}>{area.name}</Option>
+                                                })}
                                             </Select>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Mã miền giám sát</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th style={{width: '50%'}}>Tên miền giám sát</th>
-                                        <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th style={{width: '50%'}}>Kinh độ</th>
-                                        <td>
-                                            <Input name="lng" value={this.state.create.lng} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th style={{width: '50%'}}>Vĩ độ</th>
-                                        <td>
-                                            <Input name="lat" value={this.state.create.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th style={{width: '50%'}}>Bán kính</th>
-                                        <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name="code" style={{width: 200}} placeholder="Nhập" onChange={this._handleChange}/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Độ ưu tiên</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name="priority" style={{width: 200}} placeholder="Nhập" onChange={this._handleChange}/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th style={{width: '50%'}}>Chiều cao tối đa</th>
+                                        <th style={{width: '50%'}}>Mô tả</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th style={{width: '50%'}}>Chiều cao tối thiểu</th>
-                                        <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name="desciption" style={{width: 200}} placeholder="Nhập" onChange={this._handleChange}/>
                                         </td>
                                     </tr>
                                 </table>
-                                <div >
+                                <br/>
+                                <div>
                                     <MyMapComponent
-                                        isMarkerShown={this.state.isMarkerShown}
                                         onMarkerClick={this.handleMarkerClick}
+                                        triangleCoords={this.state.triangleCoords}
                                     />
                                 </div>
-                            </Modal>
-                            <Modal
-                                title="Bạn có thật sự muốn xóa không ?"
-                                visible={this.state.openModalDelete}
-                                onOk={() => this.setStatusModalDelete(false)}
-                                onCancel={() => this.setStatusModalDelete(false)}
-                                centered
-                            >
                             </Modal>
                         </Col>
                     </Row>
