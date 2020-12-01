@@ -1,8 +1,32 @@
 import React from 'react';
+import {compose, withProps} from "recompose"
 import 'antd/dist/antd.css';
 import {Table, Checkbox, Col, Row, Input, Select, Button, Modal} from 'antd';
 import {SearchOutlined, DeleteOutlined, FolderAddOutlined} from '@ant-design/icons';
 import {withRouter} from 'react-router'
+import {
+    withGoogleMap,
+    withScriptjs,
+    GoogleMap,
+} from "react-google-maps";
+
+const MyMapComponent = compose(
+    withProps({
+        googleMapURL: "https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=AIzaSyA15qz81pHiNfVEV3eeniSNhAu64SsJKgU",
+        loadingElement: <div style={{height: `100%`}}/>,
+        containerElement: <div style={{height: `400px`}}/>,
+        mapElement: <div style={{height: `100%`}}/>,
+    }),
+    withScriptjs,
+    withGoogleMap
+)((props) =>
+    <GoogleMap
+        defaultZoom={8}
+        defaultCenter={{lat: 21.0245, lng: 105.84117}}
+        onClick={props.onMarkerClick}
+    >
+    </GoogleMap>
+)
 
 class ManageArea extends React.Component {
     constructor(props) {
@@ -49,9 +73,50 @@ class ManageArea extends React.Component {
                     dataIndex: 'total',
                 },
             ],
+            create: {
+                startPoint: {
+                    lat: '123',
+                    long: '234',
+                },
+                endPoint: {
+                    lat: '456',
+                    long: '567',
+                },
+            },
         };
         this.onChange = this.onChange.bind(this);
         this.editArea = this.editArea.bind(this);
+        this._handleChange = this._handleChange.bind(this);
+    }
+
+    delayedShowMarker = () => {
+        setTimeout(() => {
+            this.setState({isMarkerShown: true})
+        }, 3000)
+    }
+    
+    handleMarkerClick = (e) => {
+        let startPoint = {}; 
+        startPoint.lat = e.latLng.lat();
+        startPoint.long = e.latLng.lng();
+        this.setState({isMarkerShown: false});
+        this.setState(prevState => {
+            let create = Object.assign({}, prevState.create);
+            create.startPoint.lat = startPoint.lat;
+            create.startPoint.long = startPoint.long;
+            return { create };
+        })
+        this.delayedShowMarker();
+    }
+    
+    _handleChange(e) {
+        let key = e.target.name;
+        let value = e.target.value;
+        this.setState(prevState => {
+            let create = Object.assign({}, prevState.create);
+            create[key] = value;
+            return { create };
+        })
     }
     
     setStatusModalAdd(openModalAdd) {
@@ -84,7 +149,7 @@ class ManageArea extends React.Component {
     editArea(val) {
         let area = this.state.listArea.find(area => area.key === val);
         this.props.history.push({
-            pathname: '/area-manage/detail',
+            pathname: '/surveillance-area/detail',
             state: {
                 area: area
             }
@@ -131,15 +196,33 @@ class ManageArea extends React.Component {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th style={{width: '50%'}}>Kinh độ</th>
+                                        <th style={{width: '50%'}}>Điểm cực Tây Bắc:</th>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%', paddingLeft: '30px'}}>Kinh độ</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                        <Input name="lng" value={this.state.create.startPoint.long} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th style={{width: '50%'}}>Vĩ độ</th>
+                                        <th style={{width: '50%', paddingLeft: '30px'}}>Vĩ độ</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                        <Input name="lng" value={this.state.create.startPoint.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%'}}>Điểm cực Đông Nam:</th>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%', paddingLeft: '30px'}}>Kinh độ</th>
+                                        <td>
+                                        <Input name="lng" value={this.state.create.endPoint.long} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%', paddingLeft: '30px'}}>Vĩ độ</th>
+                                        <td>
+                                        <Input name="lng" value={this.state.create.endPoint.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -155,6 +238,12 @@ class ManageArea extends React.Component {
                                         </td>
                                     </tr>
                                 </table>
+                                <div >
+                                    <MyMapComponent
+                                        isMarkerShown={this.state.isMarkerShown}
+                                        onMarkerClick={this.handleMarkerClick}
+                                    />
+                                </div>
                             </Modal>
                         </Col>
                     </Row>
