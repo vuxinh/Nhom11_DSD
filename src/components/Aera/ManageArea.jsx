@@ -4,11 +4,8 @@ import 'antd/dist/antd.css';
 import {Table, Checkbox, Col, Row, Input, Select, Button, Modal} from 'antd';
 import {SearchOutlined, DeleteOutlined, FolderAddOutlined} from '@ant-design/icons';
 import {withRouter} from 'react-router'
-import {
-    withGoogleMap,
-    withScriptjs,
-    GoogleMap,
-} from "react-google-maps";
+import { withGoogleMap, withScriptjs, GoogleMap,} from "react-google-maps";
+import axios from 'axios';
 
 const MyMapComponent = compose(
     withProps({
@@ -34,16 +31,16 @@ class ManageArea extends React.Component {
         this.state = {
             arrayDelete: [],
             listArea: [
-                {
-                    key: 'KVGS1',
+              /* {
+                    code: 'KVGS1',
                     name: 'Khu vực giám sát 1',
                     total: 5
                 },
                 {
-                    key: 'KVGS2',
+                    code: 'KVGS2',
                     name: 'Khu vực giám sát 2',
                     total: 2
-                },
+                },*/
             ],
             openModalAdd: false,
             columns: [
@@ -56,7 +53,7 @@ class ManageArea extends React.Component {
                 },
                 {
                     title: 'Mã khu vực',
-                    dataIndex: 'key',
+                    dataIndex: 'code',
                     key: 'key',
                     render: text => <a onClick={() => {
                         this.editArea(text)
@@ -75,13 +72,18 @@ class ManageArea extends React.Component {
             ],
             create: {
                 startPoint: {
-                    lat: '123',
-                    long: '234',
+                    latitude: 123,
+                    longitude: 234,
                 },
                 endPoint: {
-                    lat: '456',
-                    long: '567',
+                    latitude: 456,
+                    longitude: 567,
                 },
+                name: 'Nui NamDL',
+                code: 'namdl',
+                maxHeight: 100,
+                minHeight: 10,
+                priority: 0
             },
         };
         this.onChange = this.onChange.bind(this);
@@ -97,13 +99,13 @@ class ManageArea extends React.Component {
     
     handleMarkerClick = (e) => {
         let startPoint = {}; 
-        startPoint.lat = e.latLng.lat();
-        startPoint.long = e.latLng.lng();
+        startPoint.latitude = e.latLng.lat();
+        startPoint.longitude = e.latLng.lng();
         this.setState({isMarkerShown: false});
         this.setState(prevState => {
             let create = Object.assign({}, prevState.create);
-            create.startPoint.lat = startPoint.lat;
-            create.startPoint.long = startPoint.long;
+            create.startPoint.latitude = startPoint.latitude;
+            create.startPoint.longitude = startPoint.longitude;
             return { create };
         })
         this.delayedShowMarker();
@@ -118,8 +120,72 @@ class ManageArea extends React.Component {
             return { create };
         })
     }
+
+    componentDidMount() {
+        axios.get(`https://monitoredzoneserver.herokuapp.com/area?page=0`)
+          .then(res => {
+            const list = res.data.content.monitoredArea;
+            let listArea = [];
+            let i = 0;
+            for ( i = 0; i < list.length; i++){
+              let Object = {
+                  code: '',
+                  name: '',
+                  total: 0,
+                  _id: ''
+              };
+              Object.code = list[i].code;
+              Object.name = list[i].name;
+              Object._id = list[i]._id;
+              Object.total = list[i].monitoredZone.length;
+              listArea.push(Object);
+            }
+            this.setState({
+                listArea : listArea
+            })
+          })
+          .catch(error => console.log(error));
+      }
     
     setStatusModalAdd(openModalAdd) {
+        let Object = {
+            startPoint: {
+                latitude: 123,
+                longitude: 234,
+            },
+            endPoint: {
+                latitude: 456,
+                longitude: 567,
+            },
+            name: 'Nui NamDL',
+            code: 'namdl',
+            maxHeight: 100,
+            minHeight: 10,
+            priority: 0
+        };
+        Object.startPoint.latitude = this.state.create.startPoint.latitude;
+        Object.endPoint.latitude = this.state.create.endPoint.latitude;
+        Object.startPoint.longitude = this.state.create.startPoint.longitude;
+        Object.endPoint.longitude = this.state.create.endPoint.longitude;
+        Object.name = this.state.create.name;
+        Object.code = this.state.create.code;
+        Object.maxHeight = this.state.create.maxHeight;
+        Object.minHeight = this.state.create.minHeight;
+        Object.priority = this.state.create.priority;
+        Object = JSON.stringify(Object);
+       axios.post(`https://monitoredzoneserver.herokuapp.com/area`, {Object} )
+         /* .then(res => {
+
+            })
+          })*/
+          .catch(error => console.log(error));
+        console.log(this.state.create.startPoint.longitude);
+        console.log(this.state.create.startPoint.latitude);
+        console.log(this.state.create.name);
+        console.log(this.state.create.code);
+        console.log(this.state.create.maxHeight);
+        console.log(this.state.create.minHeight);
+        console.log(this.state.create.priority);
         this.setState({openModalAdd});
     }
 
@@ -186,13 +252,13 @@ class ManageArea extends React.Component {
                                     <tr>
                                         <th style={{width: '50%'}}>Mã khu vực giám sát</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name = 'code' style={{width: 200}} onChange={this._handleChange} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Tên khu vực giám sát</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name = 'name' style={{width: 200}} onChange={this._handleChange} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -201,13 +267,13 @@ class ManageArea extends React.Component {
                                     <tr>
                                         <th style={{width: '50%', paddingLeft: '30px'}}>Kinh độ</th>
                                         <td>
-                                        <Input name="lng" value={this.state.create.startPoint.long} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        <Input  value={this.state.create.startPoint.longitude} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%', paddingLeft: '30px'}}>Vĩ độ</th>
                                         <td>
-                                        <Input name="lng" value={this.state.create.startPoint.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        <Input  value={this.state.create.startPoint.latitude} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
@@ -216,25 +282,31 @@ class ManageArea extends React.Component {
                                     <tr>
                                         <th style={{width: '50%', paddingLeft: '30px'}}>Kinh độ</th>
                                         <td>
-                                        <Input name="lng" value={this.state.create.endPoint.long} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        <Input  value={this.state.create.endPoint.longitude} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%', paddingLeft: '30px'}}>Vĩ độ</th>
                                         <td>
-                                        <Input name="lng" value={this.state.create.endPoint.lat} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
+                                        <Input value={this.state.create.endPoint.latitude} onChange={this._handleChange} style={{width: 200}} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Chiều cao tối đa</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name = 'maxHeight' style={{width: 200}} onChange={this._handleChange}  placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th style={{width: '50%'}}>Chiều cao tối thiểu</th>
                                         <td>
-                                            <Input style={{width: 200}} placeholder="Nhập"/>
+                                            <Input name = 'minHeight' style={{width: 200}} onChange={this._handleChange} placeholder="Nhập"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style={{width: '50%'}}>Độ ưu tiên</th>
+                                        <td>
+                                            <Input name = 'priority' style={{width: 200}} onChange={this._handleChange} placeholder="Nhập"/>
                                         </td>
                                     </tr>
                                 </table>
