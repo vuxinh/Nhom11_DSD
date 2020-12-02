@@ -45,7 +45,7 @@ class Manage extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            triangleCoords: [],
+            triangleCoords: [],// chưa 4 diem hien thi tren ban do
             isMarkerShown: false,
             arrayDelete: [],
             listDomain: [],
@@ -107,10 +107,13 @@ class Manage extends React.Component {
     }
     
     handleMarkerClick = (e) => {
+        //get kinh do vi do khi click ban do
         let lat = e.latLng.lat();
         let lng = e.latLng.lng();
+        // check xem co ton tai startPoint va endPoint
         let latStartPoint = this.state.create.data.startPoint.latitude;
         let latEndPoint = this.state.create.data.endPoint.latitude;
+        
         if(!latStartPoint) {
             this.setState(prevState => {
                 let create = Object.assign({}, prevState.create);
