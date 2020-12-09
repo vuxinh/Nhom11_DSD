@@ -1,10 +1,11 @@
 import React from 'react';
 import {compose, withProps} from "recompose"
 import {withRouter} from 'react-router-dom';
+import CustomMarker from "./CustomMaker";
 import 'antd/dist/antd.css';
 import {Input, Select, Tabs, Button, Checkbox, Table, Modal} from 'antd';
 import {DeleteOutlined, FolderAddOutlined} from "@ant-design/icons";
-import {GoogleMap, withGoogleMap, withScriptjs, Polygon} from "react-google-maps";
+import {GoogleMap, withGoogleMap, withScriptjs, Polygon, Polyline, Marker} from "react-google-maps";
 import axios from "axios";
 
 const {TabPane} = Tabs
@@ -38,6 +39,57 @@ const MyMapComponent = compose(
                 strokeWeight: 1,
             }}
         />
+        {props.objectByZone.map(props => <CustomMarker {...props} />)}
+    </GoogleMap>
+)
+
+
+const MyMapComponent1 = compose(
+    withProps({
+        googleMapURL: "https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=AIzaSyA15qz81pHiNfVEV3eeniSNhAu64SsJKgU",
+        loadingElement: <div style={{height: `100%`}}/>,
+        containerElement: <div style={{height: `400px`}}/>,
+        mapElement: <div style={{height: `100%`}}/>,
+    }),
+    withScriptjs,
+    withGoogleMap
+)((props) =>
+    <GoogleMap
+        defaultZoom={8}
+        defaultCenter={{lat: 21.0245, lng: 105.84117}}
+        
+    >
+        <Polygon
+            path={props.triangleCoords}
+            key={1}
+            editable={true}
+            options={{
+                strokeColor: "#0000FF",
+                strokeWeight: 1,
+            }}
+        />
+    
+        <Polyline
+            path={props.pathCoordinates}
+            geodesic={true}
+            options={{
+                strokeColor: "#ff2527",
+                strokeOpacity: 0.75,
+                strokeWeight: 2,
+                icons: [
+                    {
+                        offset: "0",
+                        repeat: "20px"
+                    }
+                ]
+            }}
+        />
+        {/*{props.pathCoordinates.map(props => {*/}
+        {/*    return (*/}
+        {/*        <Marker position={{lat : props.lat, lng: props.lng}} />*/}
+        {/*    )*/}
+        {/*})}*/}
+        
     </GoogleMap>
 )
 
@@ -52,65 +104,45 @@ class ManageEdit extends React.PureComponent {
             newdomain: {
                 ...this.props.location.state.domain
             },
+            id: this.props.location.state.id,
+            objectByZone: this.props.location.state.objectByZone,
             columnsDrone: [
                 {
-                    title: '',
-                    key: 'key',
-                    render: (val) => (
-                        <Checkbox data-key={val.key} onChange={this.onChange}/>
-                    ),
-                },
-                {
-                    title: 'Tên drone',
+                    title: 'Tên đường bay',
                     dataIndex: 'name',
                     key: 'name',
-                    // render: text => <a onClick={() => { this.editDomain(text) }}>{text}</a>
                 },
                 {
-                    title: 'Chiều cao tối đa',
-                    dataIndex: 'maxH',
-                    key: 'maxH',
+                    title: 'Thời gian bắt đầu',
+                    dataIndex: 'timeStart',
+                    key: 'timeStart',
                 },
                 {
-                    title: 'Chiều cao tối thiểu',
-                    dataIndex: 'minH',
-                    key: 'minH',
+                    title: 'Thời gian kết thúc',
+                    dataIndex: 'timeEnd',
+                    key: 'timeEnd',
                 },
                 {
-                    title: 'Lịch bay',
-                    key: 'date',
-                    dataIndex: 'date',
+                    title: 'Chiều cao',
+                    key: 'heightFlight',
+                    dataIndex: 'heightFlight',
                 },
                 {
-                    title: 'Tốc độ tối đa',
-                    key: 'maxSpeed',
-                    dataIndex: 'maxSpeed',
-                }, {
-                    title: 'Thời gian bay tối đa',
-                    key: 'maxFlightTime',
-                    dataIndex: 'maxFlightTime',
-                },
+                    title: '',
+                    render: val => (
+                        <Button type="primary" style={{marginRight: 10}}
+                                onClick={() => this.showDetail(val)}>
+                            Chi tiết
+                        </Button>
+                    )
+                }
             ],
-            listDrone: [
-                {
-                    name: 'Drone 1',
-                    maxH: 50,
-                    minH: 30,
-                    date: '20/05/2020',
-                    maxSpeed: 50,
-                    maxFlightTime: '20/05/2020',
-                },
-                {
-                    name: 'Drone 2',
-                    maxH: 40,
-                    minH: 20,
-                    date: '20/05/2020',
-                    maxSpeed: 50,
-                    maxFlightTime: '20/05/2020',
-                },
-            ],
+            openModalshow: false,
+            showMarkerMouseover: false,
+            listDrone: [],
             openModalAdd: false,
             openModalDelete: false,
+            pathCoordinates: [],
         }
         this._handleChange = this._handleChange.bind(this);
     }
@@ -125,6 +157,28 @@ class ManageEdit extends React.PureComponent {
             ];
             this.setState({triangleCoords});
         }
+        this.getAllBySupervisedArea(this.state.id);
+    }
+    
+    showDetail(val) {
+        this.setModalshow(true);
+        let pathCoordinates = [];
+        if(val.flightPoints.length > 0) {
+            for (const point of val.flightPoints) {
+                let tmp = {
+                    lat: point.locationLat,
+                    lng: point.locationLng
+                }
+                pathCoordinates.push(tmp);
+            }
+            this.setState({pathCoordinates});
+        }
+       
+    }
+    
+    
+    setModalshow(openModalshow) {
+        this.setState({openModalshow});
     }
     
     diff(obj1, obj2) {
@@ -193,14 +247,21 @@ class ManageEdit extends React.PureComponent {
             this.setState({triangleCoords});
         }
     }
-    
+    onMarkerMouseover = () => {
+        let showMarkerMouseover = true;
+        this.setState({ showMarkerMouseover });
+    }
+    handleMouseExit = () => {
+        let showMarkerMouseover = false;
+        this.setState({ showMarkerMouseover });
+    }
     save() {
         let dataEdit = {
             "data": {
                 "startPoint": this.state.newdomain.startPoint,
                 "endPoint": this.state.newdomain.endPoint,
                 "priority": this.state.newdomain.priority,
-                "desciption": this.state.newdomain.desciption,
+                "description": this.state.newdomain.description,
                 "code": this.state.newdomain.code,
             }
         }
@@ -214,6 +275,15 @@ class ManageEdit extends React.PureComponent {
                 this.props.history.push({
                     pathname: '/surveillance-domain-manage',
                 });
+            })
+            .catch(error => console.log(error));
+    }
+    
+    getAllBySupervisedArea(idZone) {
+        axios.get(`http://skyrone.cf:6789/flightPath/getAllBySupervisedArea/${idZone}`)
+            .then(res => {
+                const listDrone = res.data;
+                this.setState({listDrone});
             })
             .catch(error => console.log(error));
     }
@@ -253,8 +323,8 @@ class ManageEdit extends React.PureComponent {
                                 <tr>
                                     <th style={{width: '50%'}}>Mô tả</th>
                                     <td>
-                                        <Input name="desciption" style={{width: 200}} placeholder="Nhập"
-                                               value={this.state.newdomain.desciption} onChange={this._handleChange}/>
+                                        <Input name="description" style={{width: 200}} placeholder="Nhập"
+                                               value={this.state.newdomain.description} onChange={this._handleChange}/>
                                     </td>
                                 </tr>
                             </table>
@@ -263,7 +333,11 @@ class ManageEdit extends React.PureComponent {
                         <div style={{width: "70vh"}}>
                             <MyMapComponent
                                 onMarkerClick={this.handleMarkerClick}
+                                onMarkerMouseover={this.onMarkerMouseover}
+                                handleMouseExit={this.handleMouseExit}
                                 triangleCoords={this.state.triangleCoords}
+                                objectByZone={this.state.objectByZone}
+                                showMarkerMouseover={this.state.showMarkerMouseover}
                             />
                         </div>
                         <br/>
@@ -281,8 +355,8 @@ class ManageEdit extends React.PureComponent {
                         
                         </div>
                     </TabPane>
-                    <TabPane tab="Danh sách drone" key="2">
-                        <div className="filter">
+                    <TabPane tab="Danh sách hành trình bay" key="2">
+                        {/* <div className="filter">
                             <Button type="primary" danger icon={<DeleteOutlined/>} style={{marginRight: 10}}
                                     onClick={() => this.setStatusModalDelete(true)}>
                                 Xóa
@@ -315,12 +389,25 @@ class ManageEdit extends React.PureComponent {
                             >
                             </Modal>
                         </div>
-                        <br/>
+                        <br/> */}
                         <div className="content">
                             <Table columns={this.state.columnsDrone} dataSource={this.state.listDrone} rowKey="key"/>
                         </div>
                     </TabPane>
                 </Tabs>
+                <Modal
+                    title="Hiển thị đường bay"
+                    visible={this.state.openModalshow}
+                    onOk={() => this.setModalshow(false)}
+                    onCancel={() => this.setModalshow(false)}
+                >
+                    <div>
+                        <MyMapComponent1
+                            triangleCoords={this.state.triangleCoords}
+                            pathCoordinates={this.state.pathCoordinates}
+                        />
+                    </div>
+                </Modal>
             </div>
         );
     }
