@@ -85,7 +85,7 @@ export const routes = [
     component: () => <ManageArea />,
   },
   {
-    path: '/surveillance-area/detail',
+    path: '/surveillance-area-detail',
     component: () => <DetailArea />,
   },
   {
