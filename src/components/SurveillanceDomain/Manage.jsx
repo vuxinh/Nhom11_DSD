@@ -219,6 +219,7 @@ class Manage extends React.Component {
                 if (res.data.success) {
                     this.getAllZone();
                 }
+                console.log('1');
             })
             .catch(error => console.log(error));
     }
