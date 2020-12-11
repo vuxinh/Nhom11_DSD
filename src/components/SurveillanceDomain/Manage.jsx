@@ -127,7 +127,7 @@ class Manage extends React.Component {
                     },
                     "priority": '',
                     "description": "",
-                    "code": "",
+                    "code": "MGS" + (Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000),
                     "level": 1,
                     "maxHeight": "",
                     "minHeight": "",
@@ -428,8 +428,8 @@ class Manage extends React.Component {
                                     <tr>
                                         <th style={{width: '50%'}}>Mã miền giám sát</th>
                                         <td>
-                                            <Input name="code" style={{width: 200}} placeholder="Nhập mã miền giám sát"
-                                                   onChange={this._handleChange}/>
+                                            <Input name="code" style={{width: 200}} placeholder="Nhập mã miền giám sát" value={this.state.create.data.code}
+                                            />
                                         </td>
                                     </tr>
                                     <tr>
